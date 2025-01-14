@@ -7,6 +7,8 @@ The codebase is organized into the following main directories:
 .
 ├── cmd/
 │   └── main.go           # Application entry point
+├── files/
+│   └── config.yaml       # Default configuration file
 ├── pkg/
 │   ├── app/             # Application setup and configuration
 │   ├── handlers/        # HTTP handlers for API endpoints
@@ -14,6 +16,7 @@ The codebase is organized into the following main directories:
 │   ├── middleware/      # HTTP middleware components
 │   ├── routes/          # HTTP route definitions
 │   └── service/         # Business logic and service layer
+│   └── run/             # Application bootstrapping and configuration
 └── README.md
 ```
 
@@ -22,6 +25,9 @@ The codebase is organized into the following main directories:
   - Initializes and configures the HTTP server
   - Sets up graceful shutdown handling
   - Bootstraps application dependencies
+
+### files/
+- **config.yaml**: Default configuration file
 
 ### pkg/app/
 - **app.go**: Application setup and HTTP server configuration
@@ -72,3 +78,34 @@ Features:
 - Clear separation from transport layer
 - Model-agnostic business logic
 - Reusable service components
+
+### pkg/run/
+Application bootstrapping and configuration management
+- **config.go**: Configuration structure and loading logic
+- **run.go**: Main application setup and coordination
+
+Features:
+- Configuration management (YAML, environment variables)
+- Graceful shutdown handling
+- Application lifecycle coordination
+- Command-line flag parsing
+
+## Configuration
+
+The application uses a YAML configuration file located in `files/config.yaml`.
+
+The configuration file can be overridden using the `--config` flag.
+
+```
+# Use default config path
+go run cmd/main.go
+
+# Use custom config file
+go run cmd/main.go --config ./custom-path/config.yaml
+
+# Override with environment variable
+PORT="9090" go run cmd/main.go
+```
+
+> **_NOTE:_**  Config loads with precedence: env vars > config file > defaults.
+
