@@ -15,7 +15,7 @@
 !README.md
 !LICENSE
 !files/config.yaml
-!pkg/llm/validaton/schemas/
+!pkg/llm/validaton/schemas/*.cue
 
 # !Makefile
 
