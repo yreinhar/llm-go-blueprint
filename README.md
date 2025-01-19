@@ -12,7 +12,8 @@ The codebase is organized into the following main directories:
 ├── pkg/
 │   ├── app/              # Application setup and configuration
 │   ├── handlers/         # HTTP handlers for API endpoints
-│   ├── llm/              # LLM model adapters and interfaces
+│   ├── llm/             
+│   │   └── model/        # LLM model adapters and interfaces
 │   │   └── validation/   # Validation functionality for LLM responses and requests
 │   │       └── schemas/  # CUE schema definitions
 │   ├── middleware/       # HTTP middleware components
@@ -37,7 +38,7 @@ The codebase is organized into the following main directories:
   - Applies middleware
   - Creates the main HTTP handler chain
 
-### pkg/llm/
+### pkg/llm/model/
 Core LLM (Large Language Model) integration functionality
 - **adapter.go**: Interface definitions for LLM adapters
 - **factory.go**: Factory pattern implementation for creating LLM instances

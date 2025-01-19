@@ -1,15 +1,15 @@
 package service
 
-import llm "github.com/yreinhar/llm-go-blueprint/pkg/llm"
+import model "github.com/yreinhar/llm-go-blueprint/pkg/llm/model"
 
 // QueryService handles requests to LanguageModel.
 type QueryService struct {
-	llmModel llm.Llm
+	llmModel model.Llm
 }
 
 // QueryService creates a new query service for the given large language model.
 func NewQueryService(modelName string) (*QueryService, error) {
-	llmModel, err := llm.GetLlmFactory(modelName)
+	llmModel, err := model.GetLlmFactory(modelName)
 	if err != nil {
 		return nil, err
 	}
