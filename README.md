@@ -10,13 +10,15 @@ The codebase is organized into the following main directories:
 ├── files/
 │   └── config.yaml       # Default configuration file
 ├── pkg/
-│   ├── app/             # Application setup and configuration
-│   ├── handlers/        # HTTP handlers for API endpoints
-│   ├── llm/             # LLM model adapters and interfaces
-│   ├── middleware/      # HTTP middleware components
-│   ├── routes/          # HTTP route definitions
-│   └── service/         # Business logic and service layer
-│   └── run/             # Application bootstrapping and configuration
+│   ├── app/              # Application setup and configuration
+│   ├── handlers/         # HTTP handlers for API endpoints
+│   ├── llm/              # LLM model adapters and interfaces
+│   │   └── validation/   # Validation functionality for LLM responses and requests
+│   │       └── schemas/  # CUE schema definitions
+│   ├── middleware/       # HTTP middleware components
+│   ├── routes/           # HTTP route definitions
+│   └── service/          # Business logic and service layer
+│   └── run/              # Application bootstrapping and configuration
 └── README.md
 ```
 
@@ -46,8 +48,29 @@ Key features:
 - Easy integration of new models
 - Testable design with mock implementations
 
+### pkg/llm/validation/
+Core validation functionality for LLM responses and requests.
+- **validation.go**: Interface definitions for validators
+- **response.go**: Response schema validator implementation
+- **schemas/**: CUE schema definitions
+  - Defines response formats
+  - Enforces type safety
+
+Key features:
+- Schema-based validation
+- CUE to OpenAPI conversion
+- Strict validation rules
+- Multiple schema support
+- Multiple validator support
+- Extensible validator interface
+
+### pkg/llm/validation/schemas/
+Example CUE schema definitions for response validation
+- **animalResponse.cue**: Animal response schema
+- **personResponse.cue**: Person response schema
+
 ### pkg/middleware/
-HTTP middleware components
+HTTP middleware components.
 - **logging.go**: Request logging middleware
   - Logs HTTP method, path, duration, and status code
   - Provides request tracing and monitoring
