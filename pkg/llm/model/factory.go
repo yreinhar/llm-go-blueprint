@@ -7,6 +7,11 @@ func GetLlmFactory(modelName string) (Llm, error) {
 	switch modelName {
 	case "Llama":
 		return &LlamaAdapter{}, nil
+	case "LlamaLocal":
+		return &LlamaLocal{
+			modelName: "llama-3-1b-chat",
+			baseURL:   "http://localhost:8080/v1",
+		}, nil
 	default:
 		return nil, errors.New("unknown model: " + modelName)
 	}
