@@ -133,3 +133,27 @@ PORT="9090" go run cmd/main.go
 
 > **_NOTE:_**  Config loads with precedence: env vars > config file > defaults.
 
+## Local Development
+LLamaEdge is a great project to run models locally. It uses the WASM runtime and provides a lightweight inference engine. LlamaEdge is easy to setup and a fast way to get started. The API service is a OpenAI-compativle API for multiple models.
+
+Before running the model, you need to install LlamaEdge (see https://github.com/LlamaEdge/LlamaEdge). Download the api server wasm file (https://llamaedge.com/docs/user-guide/openai-api/intro/) and the model from Huggingface (see https://huggingface.co/second-state/Llama-3.2-1B-Instruct-GGUF).
+
+```bash
+# Start service
+wasmedge --dir .:. --nn-preload default:GGML:AUTO:Llama-3.2-1B-Instruct-Q5_K_s.gguf \
+    llama-api-server.wasm \
+    --prompt-template llama-3-chat \
+    --ctx-size 128000 \
+    --model-name Llama-3.2-1b
+
+# Start http server
+go run cmd/main.go
+
+# Call model
+curl -X POST http://localhost:9090/query \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "LlamaLocal",
+    "prompt": "What is the capital of France?"
+  }'
+```
