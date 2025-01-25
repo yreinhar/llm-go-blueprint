@@ -1,25 +1,48 @@
 package service
 
-import model "github.com/yreinhar/llm-go-blueprint/pkg/llm/model"
+import (
+	"fmt"
+
+	model "github.com/yreinhar/llm-go-blueprint/pkg/llm/model"
+	validation "github.com/yreinhar/llm-go-blueprint/pkg/llm/validation"
+)
 
 // QueryService handles requests to LanguageModel.
 type QueryService struct {
-	llmModel model.Llm
+	LlmModel  model.Llm
+	Validator validation.Validation
 }
 
 // QueryService creates a new query service for the given large language model.
-func NewQueryService(modelName string) (*QueryService, error) {
+func NewQueryService(modelName string, schemaPaths []string) (*QueryService, error) {
 	llmModel, err := model.GetLlmFactory(modelName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get llm model:: %w", err)
+	}
+
+	validator, err := validation.NewResponseValidator(schemaPaths)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create response validator: %w", err)
 	}
 
 	return &QueryService{
-		llmModel: llmModel,
+		LlmModel:  llmModel,
+		Validator: validator,
 	}, nil
 }
 
-// ProcessPrompt processes the input prompt using the specified model.
-func (s *QueryService) ProcessPrompt(prompt string) (string, error) {
-	return s.llmModel.CallModel(prompt)
+// ProcessPrompt processes the input prompt using the specified model and can perform validation
+// on the LLM response based a specified output schema.
+func (s *QueryService) ProcessPrompt(prompt, responseSchema string) (string, error) {
+	// TODO: 1. validate input promp 2. sanitize input prompt 3. call model 4. postprocess repsonse/handle/validate response
+	response, err := s.LlmModel.CallModel(prompt)
+	if err != nil {
+		return "", fmt.Errorf("failed to call model: %w", err)
+	}
+
+	if err := s.Validator.Validate(responseSchema, response); err != nil {
+		return "", fmt.Errorf("failed to validate response: %w", err)
+	}
+
+	return string(response), nil
 }

@@ -5,8 +5,6 @@ import "errors"
 // GetLlmFactory returns the appropriate Llm implementation.
 func GetLlmFactory(modelName string) (Llm, error) {
 	switch modelName {
-	case "Llama":
-		return &LlamaAdapter{}, nil
 	case "LlamaLocal":
 		return &LlamaLocal{
 			modelName: "llama-3-1b-chat",

@@ -18,6 +18,12 @@ type ResponsePayload struct {
 	Response string `json:"response"`
 }
 
+const (
+	personResponseSchema = "schemas/personResponse.cue"
+	// schema type to validate the llm response against
+	schemaTypeToValidateAgainst = "personResponse"
+)
+
 // CallModelHandler handles the REST API call for calling a model.
 func CallModelHandler(w http.ResponseWriter, r *http.Request) {
 	var payload RequestPayload
@@ -31,13 +37,15 @@ func CallModelHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Write([]byte(payloadString))
 
-	service, err := service.NewQueryService(payload.Model)
+	possibleSchemas := []string{personResponseSchema}
+
+	service, err := service.NewQueryService(payload.Model, possibleSchemas)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	response, err := service.ProcessPrompt(payload.Prompt)
+	response, err := service.ProcessPrompt(payload.Prompt, schemaTypeToValidateAgainst)
 	if err != nil {
 		http.Error(w, "Failed to process prompt: "+err.Error(), http.StatusInternalServerError)
 		return
