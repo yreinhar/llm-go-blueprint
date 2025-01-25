@@ -16,6 +16,7 @@
 !LICENSE
 !files/config.yaml
 !pkg/llm/validation/schemas/*.cue
+!pkg/llm/prompt/prompts/*.yaml
 
 # !Makefile
 

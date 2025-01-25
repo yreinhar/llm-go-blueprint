@@ -20,8 +20,10 @@ type ResponsePayload struct {
 
 const (
 	personResponseSchema = "schemas/personResponse.cue"
+	promptTestTemplate   = "prompts/promptTestTemplate.yaml"
 	// schema type to validate the llm response against
 	schemaTypeToValidateAgainst = "personResponse"
+	task                        = "chat"
 )
 
 // CallModelHandler handles the REST API call for calling a model.
@@ -37,15 +39,16 @@ func CallModelHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Write([]byte(payloadString))
 
-	possibleSchemas := []string{personResponseSchema}
+	possibleResponseSchemas := []string{personResponseSchema}
+	possiblePromptTemplates := []string{promptTestTemplate}
 
-	service, err := service.NewQueryService(payload.Model, possibleSchemas)
+	service, err := service.NewQueryService(payload.Model, possibleResponseSchemas, possiblePromptTemplates)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	response, err := service.ProcessPrompt(payload.Prompt, schemaTypeToValidateAgainst)
+	response, err := service.ProcessPrompt(payload.Prompt, schemaTypeToValidateAgainst, task)
 	if err != nil {
 		http.Error(w, "Failed to process prompt: "+err.Error(), http.StatusInternalServerError)
 		return

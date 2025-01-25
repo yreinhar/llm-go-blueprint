@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/yreinhar/llm-go-blueprint/pkg/llm/prompt"
 	"github.com/yreinhar/llm-go-blueprint/pkg/service"
 )
 
@@ -17,7 +18,21 @@ type MockValidator struct {
 	mock.Mock
 }
 
-func (m *MockLLM) CallModel(prompt string) ([]byte, error) {
+type MockPromptBuilder struct {
+	mock.Mock
+}
+
+func (m *MockPromptBuilder) BuildPromptRequest(userInput, model, task string) (prompt.PromptRequest, error) {
+	args := m.Called(userInput, model, task)
+	return args.Get(0).(prompt.PromptRequest), args.Error(1)
+}
+
+func (m *MockLLM) Name() string {
+	args := m.Called()
+	return args.String(0)
+}
+
+func (m *MockLLM) CallModel(prompt prompt.PromptRequest) ([]byte, error) {
 	args := m.Called(prompt)
 	// Get the first argument as []byte directly
 	if bytes, ok := args.Get(0).([]byte); ok {
@@ -38,22 +53,25 @@ func TestNewQueryServiceValid(t *testing.T) {
 		name        string
 		modelName   string
 		schemaPaths []string
+		promptFiles []string
 	}{
 		{
 			name:        "valid model LlamaLocal with empty schema",
 			modelName:   "LlamaLocal",
 			schemaPaths: []string{},
+			promptFiles: []string{},
 		},
 		{
-			name:        "valid model LlamaLocal with schema",
+			name:        "valid model LlamaLocal with schema and prompt files",
 			modelName:   "LlamaLocal",
 			schemaPaths: []string{"schemas/personResponse.cue"},
+			promptFiles: []string{"prompts/promptTemplateDefault.yaml"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			service, err := service.NewQueryService(tt.modelName, tt.schemaPaths)
+			service, err := service.NewQueryService(tt.modelName, tt.schemaPaths, tt.promptFiles)
 			assert.NoError(t, err)
 			assert.NotNil(t, service)
 		})
@@ -65,35 +83,48 @@ func TestNewQueryServiceInvalidModel(t *testing.T) {
 		name        string
 		modelName   string
 		schemaPaths []string
+		promptFiles []string
 	}{
 		name:        "model does not exist",
 		modelName:   "InvalidModel",
 		schemaPaths: []string{},
+		promptFiles: []string{},
 	}
 
 	t.Run(tests.name, func(t *testing.T) {
-		service, err := service.NewQueryService(tests.modelName, tests.schemaPaths)
+		service, err := service.NewQueryService(tests.modelName, tests.schemaPaths, tests.promptFiles)
 		assert.Error(t, err)
 		assert.Nil(t, service)
 	})
 }
 
-func TestNewQueryServiceInvalidSchema(t *testing.T) {
-	tests := struct {
+func TestNewQueryServiceInvalid(t *testing.T) {
+	tests := []struct {
 		name        string
 		modelName   string
 		schemaPaths []string
+		promptFiles []string
 	}{
-		name:        "model is valid but schema does not exists",
-		modelName:   "LlamaLocal",
-		schemaPaths: []string{"schemas/thisFileDoesNotExist.cue"},
+		{
+			name:        "model is valid but schema does not exists",
+			modelName:   "LlamaLocal",
+			schemaPaths: []string{"schemas/thisFileDoesNotExist.cue"},
+			promptFiles: []string{"prompts/promptTemplateDefault.yaml"},
+		},
+		{
+			name:        "model is valid but prompt file does not exist",
+			modelName:   "LlamaLocal",
+			schemaPaths: []string{"schemas/personResponse.cue"},
+			promptFiles: []string{"prompts/thisFileDoesNotExist.yaml"},
+		},
 	}
-
-	t.Run(tests.name, func(t *testing.T) {
-		service, err := service.NewQueryService(tests.modelName, tests.schemaPaths)
-		assert.Error(t, err)
-		assert.Nil(t, service)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service, err := service.NewQueryService(tt.modelName, tt.schemaPaths, tt.promptFiles)
+			assert.Error(t, err)
+			assert.Nil(t, service)
+		})
+	}
 }
 
 func TestQueryServiceProcessPromptSuccess(t *testing.T) {
@@ -111,8 +142,12 @@ func TestQueryServiceProcessPromptSuccess(t *testing.T) {
 	}
 
 	t.Run(testCase.name, func(t *testing.T) {
-		// the schmema itself is not relevant for the test, so mock.Anything is used
+		// the schema and task itself are not relevant for the test, so mock.Anything is used
 		schema := mock.Anything
+		task := mock.Anything
+
+		mockPromptBuilder := new(MockPromptBuilder) // Todo
+		mockPromptBuilder.On("BuildPromptRequest", testCase.prompt, testCase.modelName, "").Return(prompt.PromptRequest{}, nil)
 
 		mockLLM := new(MockLLM)
 		mockLLM.On("CallModel", testCase.prompt).Return(testCase.mockResp, nil)
@@ -122,11 +157,12 @@ func TestQueryServiceProcessPromptSuccess(t *testing.T) {
 
 		// Create service with mock
 		service := &service.QueryService{
-			LlmModel:  mockLLM,
-			Validator: mockValidator,
+			LlmModel:      mockLLM,
+			Validator:     mockValidator,
+			PromptBuilder: mockPromptBuilder,
 		}
 
-		got, err := service.ProcessPrompt(testCase.prompt, schema)
+		got, err := service.ProcessPrompt(testCase.prompt, schema, task)
 		assert.NoError(t, err)
 		assert.Equal(t, string(testCase.mockResp), got)
 
@@ -151,8 +187,9 @@ func TestQueryServiceProcessPromptCallModelError(t *testing.T) {
 	}
 
 	t.Run(testCase.name, func(t *testing.T) {
-		// the schmema itself is not relevant for the test, so mock.Anything is used
+		// the schema and task itself are not relevant for the test, so mock.Anything is used
 		schema := mock.Anything
+		task := mock.Anything
 
 		mockLLM := new(MockLLM)
 		mockLLM.On("CallModel", testCase.prompt).Return(testCase.mockResp, assert.AnError)
@@ -163,7 +200,7 @@ func TestQueryServiceProcessPromptCallModelError(t *testing.T) {
 		}
 
 		// Model call failed
-		_, err := service.ProcessPrompt(testCase.prompt, schema)
+		_, err := service.ProcessPrompt(testCase.prompt, schema, task)
 		assert.Error(t, err)
 
 		// Verify mock was called as expected
@@ -186,8 +223,9 @@ func TestQueryServiceProcessPromptValidateError(t *testing.T) {
 	}
 
 	t.Run(testCase.name, func(t *testing.T) {
-		// the schmema itself is not relevant for the test, so mock.Anything is used
+		// the schema and task itself are not relevant for the test, so mock.Anything is used
 		schema := mock.Anything
+		task := mock.Anything
 
 		mockLLM := new(MockLLM)
 		mockLLM.On("CallModel", testCase.prompt).Return(testCase.mockResp, nil)
@@ -202,7 +240,7 @@ func TestQueryServiceProcessPromptValidateError(t *testing.T) {
 		}
 
 		// Model call was successful, but validation failed
-		_, err := service.ProcessPrompt(testCase.prompt, schema)
+		_, err := service.ProcessPrompt(testCase.prompt, schema, task)
 		assert.Error(t, err)
 
 		// Verify mock was called as expected

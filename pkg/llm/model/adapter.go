@@ -9,11 +9,13 @@ import (
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/yreinhar/llm-go-blueprint/pkg/llm/prompt"
 )
 
 // Llm is the common interface for all models.
 type Llm interface {
-	CallModel(prompt string) ([]byte, error)
+	CallModel(prompt.PromptRequest) ([]byte, error)
+	Name() string
 }
 
 type LlamaLocal struct {
@@ -21,27 +23,17 @@ type LlamaLocal struct {
 	baseURL   string
 }
 
-func (m *LlamaLocal) CallModel(prompt string) ([]byte, error) {
-	url := fmt.Sprintf("%s/chat/completions", m.baseURL)
-	// Request body
-	requestBody := map[string]interface{}{
-		"messages": []map[string]string{
-			{
-				"role":    "system",
-				"content": "You are a helpful assistant.",
-			},
-			{
-				"role":    "user",
-				"content": prompt,
-			},
-		},
-		"model": m.modelName,
-	}
+func (m *LlamaLocal) Name() string {
+	return m.modelName
+}
 
-	log.Printf("requestBody: %v", requestBody)
+func (m *LlamaLocal) CallModel(prompt prompt.PromptRequest) ([]byte, error) {
+	url := fmt.Sprintf("%s/chat/completions", m.baseURL)
+
+	log.Printf("requestBody: %v", prompt)
 
 	// Convert to JSON
-	jsonData, err := json.Marshal(requestBody)
+	jsonData, err := json.Marshal(prompt)
 	if err != nil {
 		log.Fatalf("failed to marshal JSON: %v", err)
 		return []byte{}, fmt.Errorf("failed to marshal JSON: %w", err)

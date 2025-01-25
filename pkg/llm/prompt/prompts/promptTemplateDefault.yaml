@@ -1,0 +1,10 @@
+model: "llama-3-1b-chat"
+task: "chat" # This is like a identify. The same model can be used for different tasks that may require different configurations.
+config:
+  temperature: 1.0 # optional; range: 0-2
+  # TODO: add more config opts
+roles:
+  developer: # Developer-provided instructions that the model should follow, regardless of messages sent by the user.
+    content: "You are a helpful assistant."
+  assistant: # Messages sent by the model in response to user messages.
+    content: "\n\nHello there, how may I assist you today?"
