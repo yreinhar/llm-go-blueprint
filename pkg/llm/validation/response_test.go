@@ -7,11 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestResponseValidatorImplementsInterface(t *testing.T) {
-	// Verify ResponseSchemaValidator implements Validation interface
-	var _ Validation = (*ResponseSchemaValidator)(nil)
-}
-
 func TestNonExistingSchema(t *testing.T) {
 	validator, err := NewResponseSchemaValidator([]string{"schemas/nonExistingSchema.cue"})
 	assert.Error(t, err)

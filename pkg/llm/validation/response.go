@@ -25,15 +25,52 @@ const version = "v1"
 
 // NewResponseValidator implements the Validation interface and loads all schema files and generates an OpenAPI schema for each that can be used to validate a response. One validator could validate multiple schemas.
 func NewResponseSchemaValidator(schemaFiles []string) (*ResponseSchemaValidator, error) {
-	cueCtx := cuecontext.New()
-	schemas := make(map[string]*openapi3.Schema)
 
 	log.Debugf("Loading schemas: %s", schemaFiles)
+
+	schemas, err := loadSchemas(schemaFiles)
+	if err != nil {
+		return nil, fmt.Errorf("failed loading schemas: %w", err)
+	}
+
+	return &ResponseSchemaValidator{
+		schemas: schemas,
+	}, nil
+}
+
+func (v *ResponseSchemaValidator) Validate(schema string, data []byte) error {
+	// Get the schema from the map
+	opeapiSchema, exists := v.schemas[schema]
+	if !exists {
+		return fmt.Errorf("validation failed schema not found: %s", schema)
+	}
+
+	var jsonData interface{}
+	// Parse JSON
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		return fmt.Errorf("invalid JSON: %w", err)
+	}
+
+	log.Debugf("Validating against schema: %s\n", schema)
+
+	// Validate against schema
+	err := opeapiSchema.VisitJSON(jsonData)
+	if err != nil {
+		return fmt.Errorf("validation failed: %w", err)
+	}
+
+	return nil
+}
+
+func loadSchemas(schemaFiles []string) (map[string]*openapi3.Schema, error) {
+	cueCtx := cuecontext.New()
+
+	schemas := make(map[string]*openapi3.Schema)
 
 	for _, schema := range schemaFiles {
 		schemaData, err := schemaFS.ReadFile(schema)
 		if err != nil {
-			return nil, fmt.Errorf("reading schema file: %w", err)
+			return nil, fmt.Errorf("failed to read schema file: %w", err)
 		}
 
 		name, err := getPackageName(schemaData)
@@ -49,7 +86,7 @@ func NewResponseSchemaValidator(schemaFiles []string) (*ResponseSchemaValidator,
 		loader := openapi3.NewLoader()
 		doc, err := loader.LoadFromData(openAPISchema)
 		if err != nil {
-			return nil, fmt.Errorf("loading schema: %w", err)
+			return nil, fmt.Errorf("failed to load openapi schema: %w", err)
 		}
 
 		if doc.Components.Schemas[name] == nil {
@@ -61,33 +98,7 @@ func NewResponseSchemaValidator(schemaFiles []string) (*ResponseSchemaValidator,
 		schemas[name] = doc.Components.Schemas[name].Value
 	}
 
-	return &ResponseSchemaValidator{
-		schemas: schemas,
-	}, nil
-}
-
-func (v *ResponseSchemaValidator) Validate(schema string, data []byte) error {
-	// Get the schema from the map
-	cueSchema, exists := v.schemas[schema]
-	if !exists {
-		return fmt.Errorf("validation failed schema not found: %s", schema)
-	}
-
-	var jsonData interface{}
-	// Parse JSON
-	if err := json.Unmarshal(data, &jsonData); err != nil {
-		return fmt.Errorf("invalid JSON: %w", err)
-	}
-
-	log.Debugf("Validating against schema: %s\n", schema)
-
-	// Validate against schema
-	err := cueSchema.VisitJSON(jsonData)
-	if err != nil {
-		return fmt.Errorf("validation failed: %w", err)
-	}
-
-	return nil
+	return schemas, nil
 }
 
 // getPackageName gets the package name from the cue schema file.
