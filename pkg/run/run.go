@@ -37,10 +37,14 @@ func Run(
 	}
 
 	// Create a new server instance
-	srv := app.NewServer()
+	srv, err := app.NewServer()
+	if err != nil {
+		return fmt.Errorf("failed to create server: %w", err)
+	}
+
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%s", config.Port),
-		Handler: srv,
+		Handler: srv.Handler(),
 	}
 
 	// Start server in a goroutine

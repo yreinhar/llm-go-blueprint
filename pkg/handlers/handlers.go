@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-
-	"github.com/yreinhar/llm-go-blueprint/pkg/service"
 )
 
 type RequestPayload struct {
@@ -18,16 +16,34 @@ type ResponsePayload struct {
 	Response string `json:"response"`
 }
 
+// QueryService defines the interface for processing model prompts.
+// Implementations handle the actual interaction with language models.
+type QueryService interface {
+	ProcessPrompt(prompt, schemaType, task string) (string, error)
+}
+
+// Handler manages HTTP request processing and coordinates with the query service.
+// It encapsulates all the dependencies needed for handling HTTP requests.
+type Handler struct {
+	queryService QueryService
+}
+
 const (
-	personResponseSchema = "schemas/personResponse.cue"
-	promptTestTemplate   = "prompts/promptTestTemplate.yaml"
 	// schema type to validate the llm response against
 	schemaTypeToValidateAgainst = "personResponse"
 	task                        = "chat"
 )
 
+// NewHandler creates a new handler instance with the provided query service.
+// It initializes the handler with all required dependencies for processing requests.
+func NewHandler(queryService QueryService) *Handler {
+	return &Handler{
+		queryService: queryService,
+	}
+}
+
 // CallModelHandler handles the REST API call for calling a model.
-func CallModelHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CallModelHandler(w http.ResponseWriter, r *http.Request) {
 	var payload RequestPayload
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	if err != nil {
@@ -39,16 +55,7 @@ func CallModelHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Write([]byte(payloadString))
 
-	possibleResponseSchemas := []string{personResponseSchema}
-	possiblePromptTemplates := []string{promptTestTemplate}
-
-	service, err := service.NewQueryService(payload.Model, possibleResponseSchemas, possiblePromptTemplates)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response, err := service.ProcessPrompt(payload.Prompt, schemaTypeToValidateAgainst, task)
+	response, err := h.queryService.ProcessPrompt(payload.Prompt, schemaTypeToValidateAgainst, task)
 	if err != nil {
 		http.Error(w, "Failed to process prompt: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -62,7 +69,7 @@ func CallModelHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(jsonResponse)
 }
 
-func HandleHelloWorld(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleHelloWorld(w http.ResponseWriter, r *http.Request) {
 	_ = r.Body
 	log.Println("Received a non domain request")
 	w.Write([]byte("Hello World"))

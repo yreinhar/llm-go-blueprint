@@ -6,8 +6,9 @@ import (
 	"github.com/yreinhar/llm-go-blueprint/pkg/handlers"
 )
 
-func AddRoutes(mux *http.ServeMux) {
+// AddRoutes configures all HTTP routes for the app.
+func AddRoutes(mux *http.ServeMux, h *handlers.Handler) {
 	mux.Handle("/", http.NotFoundHandler())
-	mux.HandleFunc("/hello", handlers.HandleHelloWorld)
-	mux.HandleFunc("/query", handlers.CallModelHandler)
+	mux.HandleFunc("/hello", h.HandleHelloWorld)
+	mux.HandleFunc("/query", h.CallModelHandler)
 }
