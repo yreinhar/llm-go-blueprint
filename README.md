@@ -16,6 +16,8 @@ The codebase is organized into the following main directories:
 │   │   └── model/        # LLM model adapters and interfaces
 │   │   └── validation/   # Validation functionality for LLM responses and requests
 │   │       └── schemas/  # CUE schema definitions
+│   │   └── prompt/       # Core prompt management and template functionality
+│   │       └── prompts/  # Promptfiles
 │   ├── middleware/       # HTTP middleware components
 │   ├── routes/           # HTTP route definitions
 │   └── service/          # Business logic and service layer
@@ -69,6 +71,25 @@ Key features:
 Example CUE schema definitions for response validation
 - **animalResponse.cue**: Animal response schema
 - **personResponse.cue**: Person response schema
+
+### pkg/llm/prompt/
+Handling the structured communication between the application and the language models through configurable templates
+- **prompt.go**: Interface definitions and prompt request builder
+- **template.go**: Template structure and loading logic
+- **prompts/**: YAML template definitions
+  - Defines model-specific prompts
+  - Configures model behavior
+
+Key features:
+- Template-based prompt management
+- YAML configuration support
+- Prompt as code philosophy enabling versioned experimentation
+- Reusable prompt components
+- Model-specific templates
+
+### pkg/llm/prompt/prompts/
+Contains Promptfiles
+- **promptTemplateDefault.yaml**: Default prompt template
 
 ### pkg/middleware/
 HTTP middleware components.
